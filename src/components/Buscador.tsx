@@ -391,7 +391,7 @@ export function Buscador({ cierreInicial }: Props) {
       <div aria-live="polite" className="space-y-4">
         {cargando && (
           <Aviso tipo="info" rol="status">
-            {cargando === "novedades" ? "Buscando en novedades y actualizaciones…" : "Buscando en Supabase…"}
+            {cargando === "novedades" ? "Buscando en novedades y actualizaciones…" : "Buscando en la base de datos…"}
             {hayConsulta &&
               " La primera búsqueda con texto tras un rato sin uso puede tardar unos segundos mientras se carga el modelo."}
           </Aviso>
