@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Transformers.js y onnxruntime-node son paquetes nativos: no se empaquetan, se cargan desde node_modules.
-  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "onnxruntime-web", "sharp"],
+  // 1. Quitamos "sharp" de aquí para que no lo busque externamente
+  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "onnxruntime-web"],
 
   // Vercel limita la función a 250 MB: dejamos solo el binario de Linux x64 (CPU)
   // y descartamos los de macOS/Windows/ARM, los proveedores GPU y sharp.
