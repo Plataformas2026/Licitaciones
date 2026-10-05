@@ -9,8 +9,10 @@ import {
   TIPOS_CONTRATO,
 } from "@/lib/constants.ts";
 import type { Modo, RespuestaBusqueda } from "@/lib/types.ts";
+import { Cargando, IconoBuscar, IconoLimpiar, IconoNovedades } from "./icons.tsx";
 import { MultiSelect } from "./MultiSelect.tsx";
 import { ResultsTable } from "./ResultsTable.tsx";
+import { Aviso, botonPrimario, botonSecundario, campo, etiqueta, Panel } from "./ui.tsx";
 
 interface Props {
   /** Fecha por defecto de "Fecha fin de presentación (Mínima)": ayer, calculada en el servidor. */
@@ -31,10 +33,6 @@ const CAMPOS_VACIOS = {
   mostrarTodos: true,
   limite: 10,
 };
-
-const entrada =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-2 focus:outline-brand disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
-const etiqueta = "mb-1 block text-sm font-medium text-slate-700";
 
 export function Buscador({ cierreInicial }: Props) {
   const [c, setC] = useState(CAMPOS_VACIOS);
@@ -164,260 +162,264 @@ export function Buscador({ cierreInicial }: Props) {
   const ocupado = cargando !== null;
 
   return (
-    <form onSubmit={alEnviar} className="space-y-6">
+    <form onSubmit={alEnviar} className="space-y-5">
       {/* Búsqueda principal */}
-      <section className="space-y-4">
-        <div>
-          <label htmlFor="consulta" className={etiqueta}>
-            ¿Qué tipo de licitación buscas?
-          </label>
-          <input
-            id="consulta"
-            type="text"
-            value={c.consulta}
-            disabled={hayPalabrasClave}
-            onChange={(e) => set("consulta", e.target.value)}
-            placeholder="ej. mantenimiento informático, suministro de vehículos, obras..."
-            className={entrada}
-          />
-        </div>
+      <Panel>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div>
+            <label htmlFor="consulta" className={etiqueta}>
+              ¿Qué tipo de licitación buscas?
+            </label>
+            <input
+              id="consulta"
+              type="text"
+              value={c.consulta}
+              disabled={hayPalabrasClave}
+              onChange={(e) => set("consulta", e.target.value)}
+              placeholder="ej. mantenimiento informático, suministro de vehículos, obras..."
+              className={campo}
+            />
+          </div>
 
-        <div>
-          <label htmlFor="palabras" className={etiqueta}>
-            Palabras clave
-          </label>
-          <input
-            id="palabras"
-            type="text"
-            value={c.palabrasClave}
-            disabled={hayConsulta}
-            onChange={(e) => set("palabrasClave", e.target.value)}
-            placeholder="ej. mantenimiento, obras..."
-            className={entrada}
-          />
-          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-            Varias palabras seguidas equivalen a OR (basta con que aparezca una). Usa AND para exigir varios términos a
-            la vez (ej. software AND web) y OR para exigir cualquiera (ej. suministro OR servicio). Las comillas exigen
-            una frase exacta (ej. &quot;mantenimiento de equipos&quot;) y el guion excluye un término o frase (ej.
-            -provisional o -&quot;obras menores&quot;).
-          </p>
+          <div>
+            <label htmlFor="palabras" className={etiqueta}>
+              Palabras clave
+            </label>
+            <input
+              id="palabras"
+              type="text"
+              value={c.palabrasClave}
+              disabled={hayConsulta}
+              onChange={(e) => set("palabrasClave", e.target.value)}
+              placeholder="ej. mantenimiento, obras..."
+              className={campo}
+            />
+          </div>
         </div>
-      </section>
+        <p className="mt-3 max-w-4xl text-xs leading-relaxed text-muted">
+          Varias palabras seguidas equivalen a OR (basta con que aparezca una). Usa AND para exigir varios términos a
+          la vez (ej. software AND web) y OR para exigir cualquiera (ej. suministro OR servicio). Las comillas exigen
+          una frase exacta (ej. &quot;mantenimiento de equipos&quot;) y el guion excluye un término o frase (ej.
+          -provisional o -&quot;obras menores&quot;).
+        </p>
+      </Panel>
 
       {/* Filtros avanzados */}
-      <section aria-labelledby="titulo-filtros" className="space-y-4">
-        <h2 id="titulo-filtros" className="text-lg font-semibold text-slate-900">
-          ⚙️ Filtros avanzados
-        </h2>
+      <Panel titulo="Filtros avanzados">
+        <div className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+            <MultiSelect label="🌐 Fuente" options={FUENTES} value={c.fuentes} onChange={(v) => set("fuentes", v)} />
+            <MultiSelect
+              label="📋 Tipo de contrato"
+              options={TIPOS_CONTRATO}
+              value={c.tiposContrato}
+              onChange={(v) => set("tiposContrato", v)}
+            />
+            <div>
+              <label htmlFor="imp-min" className={etiqueta}>
+                Importe Mínimo (€)
+              </label>
+              <input
+                id="imp-min"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={c.importeMin}
+                onChange={(e) => set("importeMin", e.target.value)}
+                className={`${campo} tabular-nums`}
+              />
+            </div>
+            <div>
+              <label htmlFor="imp-max" className={etiqueta}>
+                Importe Máximo (€)
+              </label>
+              <input
+                id="imp-max"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                value={c.importeMax}
+                onChange={(e) => set("importeMax", e.target.value)}
+                className={`${campo} tabular-nums`}
+              />
+            </div>
+            <MultiSelect
+              label="📍 Lugar de ejecución (Desplegable)"
+              options={OPCIONES_CCAA}
+              value={c.ccaa}
+              onChange={(v) => set("ccaa", v)}
+            />
+          </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <MultiSelect label="🌐 Fuente" options={FUENTES} value={c.fuentes} onChange={(v) => set("fuentes", v)} />
-          <MultiSelect
-            label="📋 Tipo de contrato"
-            options={TIPOS_CONTRATO}
-            value={c.tiposContrato}
-            onChange={(v) => set("tiposContrato", v)}
-          />
-          <div>
-            <label htmlFor="imp-min" className={etiqueta}>
-              Importe Mínimo (€)
-            </label>
-            <input
-              id="imp-min"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
-              value={c.importeMin}
-              onChange={(e) => set("importeMin", e.target.value)}
-              className={entrada}
+          <div className="grid gap-5 md:grid-cols-3">
+            <div>
+              <label htmlFor="lugar" className={etiqueta}>
+                Lugar de ejecución (Libre)
+              </label>
+              <input
+                id="lugar"
+                type="text"
+                value={c.lugarLibre}
+                onChange={(e) => set("lugarLibre", e.target.value)}
+                placeholder="ej. San Sebastián"
+                className={campo}
+              />
+            </div>
+            <MultiSelect
+              label="📦 Sector CPV"
+              options={OPCIONES_SECTOR_CPV}
+              value={c.sectoresCpv}
+              onChange={(v) => set("sectoresCpv", v)}
             />
+            <div>
+              <label htmlFor="cpv" className={etiqueta}>
+                Código CPV
+              </label>
+              <input
+                id="cpv"
+                type="text"
+                value={c.codigoCpv}
+                onChange={(e) => set("codigoCpv", e.target.value)}
+                placeholder="ej. 45210000"
+                className={`${campo} tabular-nums`}
+              />
+            </div>
           </div>
-          <div>
-            <label htmlFor="imp-max" className={etiqueta}>
-              Importe Máximo (€)
-            </label>
-            <input
-              id="imp-max"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
-              value={c.importeMax}
-              onChange={(e) => set("importeMax", e.target.value)}
-              className={entrada}
-            />
-          </div>
-          <MultiSelect
-            label="📍 Lugar de ejecución (Desplegable)"
-            options={OPCIONES_CCAA}
-            value={c.ccaa}
-            onChange={(v) => set("ccaa", v)}
-          />
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <label htmlFor="lugar" className={etiqueta}>
-              📍 Lugar de ejecución (Libre)
-            </label>
-            <input
-              id="lugar"
-              type="text"
-              value={c.lugarLibre}
-              onChange={(e) => set("lugarLibre", e.target.value)}
-              placeholder="ej. San Sebastián"
-              className={entrada}
-            />
-          </div>
-          <MultiSelect
-            label="📦 Sector CPV"
-            options={OPCIONES_SECTOR_CPV}
-            value={c.sectoresCpv}
-            onChange={(v) => set("sectoresCpv", v)}
-          />
-          <div>
-            <label htmlFor="cpv" className={etiqueta}>
-              🔢 Código CPV
-            </label>
-            <input
-              id="cpv"
-              type="text"
-              value={c.codigoCpv}
-              onChange={(e) => set("codigoCpv", e.target.value)}
-              placeholder="ej. 45210000"
-              className={entrada}
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <label htmlFor="cierre" className={etiqueta}>
-              ⏳ Fecha fin de presentación (Mínima)
-            </label>
-            <input
-              id="cierre"
-              type="date"
-              value={fechaCierre}
-              onChange={(e) => setFechaCierre(e.target.value)}
-              className={entrada}
-            />
-          </div>
-          <div>
-            <label htmlFor="desde" className={etiqueta}>
-              📅 Rango publicación (Desde)
-            </label>
-            <input
-              id="desde"
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-              className={entrada}
-            />
-          </div>
-          <div>
-            <label htmlFor="hasta" className={etiqueta}>
-              📅 Rango publicación (Hasta)
-            </label>
-            <input
-              id="hasta"
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-              className={entrada}
-            />
+          <div className="grid gap-5 md:grid-cols-3">
+            <div>
+              <label htmlFor="cierre" className={etiqueta}>
+                Fecha fin de presentación (Mínima)
+              </label>
+              <input
+                id="cierre"
+                type="date"
+                value={fechaCierre}
+                onChange={(e) => setFechaCierre(e.target.value)}
+                className={campo}
+              />
+            </div>
+            <div>
+              <label htmlFor="desde" className={etiqueta}>
+                Rango publicación (Desde)
+              </label>
+              <input
+                id="desde"
+                type="date"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                className={campo}
+              />
+            </div>
+            <div>
+              <label htmlFor="hasta" className={etiqueta}>
+                Rango publicación (Hasta)
+              </label>
+              <input
+                id="hasta"
+                type="date"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                className={campo}
+              />
+            </div>
           </div>
         </div>
-      </section>
+      </Panel>
 
-      {/* Número de resultados */}
-      <fieldset className="rounded-lg border border-slate-300 bg-slate-50 p-4 lg:w-3/5">
-        <legend className="px-1 text-sm font-semibold text-slate-800">¿Cuántos resultados quieres ver?</legend>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={c.mostrarTodos}
-              onChange={(e) => set("mostrarTodos", e.target.checked)}
-              className="accent-brand"
-            />
-            Mostrar TODOS los resultados
-          </label>
-
-          <div className="flex min-w-64 flex-1 items-center gap-3">
-            <label
-              htmlFor="limite"
-              className={`whitespace-nowrap text-sm ${c.mostrarTodos ? "text-slate-400" : "text-slate-700"}`}
-            >
-              Seleccionar número de resultados:
+      {/* Número de resultados y acciones */}
+      <div className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <fieldset className="rounded-xl border border-line bg-white p-5 shadow-[0_1px_2px_rgb(15_27_45/0.04)]">
+          <legend className="px-1 font-serif text-base font-semibold text-ink">¿Cuántos resultados quieres ver?</legend>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={c.mostrarTodos}
+                onChange={(e) => set("mostrarTodos", e.target.checked)}
+                className="size-4 accent-brand"
+              />
+              Mostrar TODOS los resultados
             </label>
-            <input
-              id="limite"
-              type="range"
-              min={1}
-              max={500}
-              value={c.limite}
-              disabled={c.mostrarTodos}
-              onChange={(e) => setC((p) => ({ ...p, limite: Number(e.target.value), mostrarTodos: false }))}
-              className="flex-1 accent-brand disabled:opacity-40"
-            />
-            <output htmlFor="limite" className={`w-9 text-right text-sm tabular-nums ${c.mostrarTodos ? "text-slate-400" : ""}`}>
-              {c.limite}
-            </output>
-          </div>
-        </div>
-      </fieldset>
 
-      {/* Acciones */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <button
-          type="submit"
-          disabled={ocupado}
-          className="rounded-lg bg-brand px-5 py-2.5 text-base font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
-        >
-          {cargando === "buscar" ? "Buscando…" : "🔍 Buscar licitaciones"}
-        </button>
-        <button
-          type="button"
-          disabled={ocupado}
-          onClick={() => void lanzar("novedades")}
-          className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-base font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-60"
-        >
-          {cargando === "novedades" ? "Buscando…" : "✨ Novedades"}
-        </button>
-        <button
-          type="button"
-          onClick={limpiar}
-          className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-base font-semibold text-slate-800 hover:bg-slate-100"
-        >
-          🔄 Limpiar Filtros
-        </button>
+            <div className="flex min-w-64 flex-1 items-center gap-3">
+              <label
+                htmlFor="limite"
+                className={`whitespace-nowrap text-sm ${c.mostrarTodos ? "text-slate-400" : "text-ink"}`}
+              >
+                Seleccionar número de resultados:
+              </label>
+              <input
+                id="limite"
+                type="range"
+                min={1}
+                max={500}
+                value={c.limite}
+                disabled={c.mostrarTodos}
+                onChange={(e) => setC((p) => ({ ...p, limite: Number(e.target.value), mostrarTodos: false }))}
+                className="flex-1 accent-brand disabled:opacity-40"
+              />
+              <output
+                htmlFor="limite"
+                className={`w-9 text-right text-sm font-medium tabular-nums ${c.mostrarTodos ? "text-slate-400" : ""}`}
+              >
+                {c.limite}
+              </output>
+            </div>
+          </div>
+        </fieldset>
+
+        <div className="grid content-center gap-3 sm:grid-cols-3">
+          <button type="submit" disabled={ocupado} className={botonPrimario}>
+            {cargando === "buscar" ? <Cargando /> : <IconoBuscar />}
+            {cargando === "buscar" ? "Buscando…" : "Buscar licitaciones"}
+          </button>
+          <button type="button" disabled={ocupado} onClick={() => void lanzar("novedades")} className={botonSecundario}>
+            {cargando === "novedades" ? <Cargando /> : <IconoNovedades />}
+            {cargando === "novedades" ? "Buscando…" : "Novedades"}
+          </button>
+          <button type="button" onClick={limpiar} className={botonSecundario}>
+            <IconoLimpiar />
+            Limpiar Filtros
+          </button>
+        </div>
       </div>
 
       {/* Estado y resultados */}
       <div aria-live="polite" className="space-y-4">
         {cargando && (
-          <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          <Aviso tipo="info" rol="status">
             {cargando === "novedades" ? "Buscando en novedades y actualizaciones…" : "Buscando en Supabase…"}
-            {hayConsulta && " La primera búsqueda con texto tras un rato sin uso puede tardar unos segundos mientras se carga el modelo."}
-          </p>
+            {hayConsulta &&
+              " La primera búsqueda con texto tras un rato sin uso puede tardar unos segundos mientras se carga el modelo."}
+          </Aviso>
         )}
         {error && (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            ⚠️ {error}
-          </p>
+          <Aviso tipo="error" rol="alert">
+            {error}
+          </Aviso>
         )}
-        {aviso && (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{aviso}</p>
-        )}
+        {aviso && <Aviso tipo="aviso">{aviso}</Aviso>}
 
         {resultado && (
           <>
-            <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
-              {mensajeExito()}
+            <Aviso tipo="ok">{mensajeExito()}</Aviso>
+            <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted">
+              <span className="inline-flex items-center gap-2">
+                <span aria-hidden className="size-3 rounded-sm bg-[#1e8e3e]" />
+                <span>
+                  <em>Verde</em>: Licitaciones Nuevas
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span aria-hidden className="size-3 rounded-sm bg-brand" />
+                <span>
+                  <em>Azul</em>: Licitaciones Actualizadas
+                </span>
+              </span>
             </p>
-            <p className="text-sm text-slate-600">🟢 <em>Verde</em>: Licitaciones Nuevas | 🔵 <em>Azul</em>: Licitaciones Actualizadas</p>
             <ResultsTable filas={resultado.datos.filas} />
           </>
         )}

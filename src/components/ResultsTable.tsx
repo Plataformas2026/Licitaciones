@@ -2,8 +2,22 @@
 
 import { useEffect, useState } from "react";
 import type { FilaResultado } from "@/lib/types.ts";
+import { IconoEnlace } from "./icons.tsx";
 
 const POR_PAGINA = 50;
+
+const COLUMNAS = [
+  "#",
+  "Relevancia (%)",
+  "Título",
+  "Órgano",
+  "Tipo Contrato",
+  "Lugar",
+  "Cierre",
+  "Fecha Pub.",
+  "Importe",
+  "Enlace oficial",
+];
 
 export function ResultsTable({ filas }: { filas: FilaResultado[] }) {
   const [pagina, setPagina] = useState(1);
@@ -17,46 +31,60 @@ export function ResultsTable({ filas }: { filas: FilaResultado[] }) {
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full min-w-[1100px] border-collapse text-sm">
-          <thead className="bg-slate-100 text-left text-slate-700">
+      <div className="relative max-h-[70vh] overflow-auto rounded-xl border border-line bg-white shadow-[0_1px_2px_rgb(15_27_45/0.04)]">
+        <table className="w-full min-w-[1150px] border-collapse text-sm">
+          <thead className="sticky top-0 z-10 bg-ink text-left text-white">
             <tr>
-              {["#", "Relevancia (%)", "Título", "Órgano", "Tipo Contrato", "Lugar", "Cierre", "Fecha Pub.", "Importe", "Enlace oficial"].map(
-                (c) => (
-                  <th key={c} scope="col" className="whitespace-nowrap px-3 py-2 font-semibold">
-                    {c}
-                  </th>
-                ),
-              )}
+              {COLUMNAS.map((c, i) => (
+                <th
+                  key={c}
+                  scope="col"
+                  className={`whitespace-nowrap px-3 py-2.5 text-xs font-semibold ${i === 8 ? "text-right" : ""}`}
+                >
+                  {c}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {visibles.map((f, i) => {
-              const color = f.esNovedad
-                ? "bg-[#d4edda] font-bold text-[#155724]"
-                : f.esActualizada
-                  ? "bg-[#cce5ff] font-bold text-[#004085]"
+              const nueva = f.esNovedad;
+              const actualizada = !nueva && f.esActualizada;
+              const fondo = nueva ? "bg-[#e6f4ea]" : actualizada ? "bg-[#e3eefc]" : "bg-white";
+              const texto = nueva ? "text-[#14532d] font-semibold" : actualizada ? "text-[#0b3a7a] font-semibold" : "text-ink";
+              const marca = nueva
+                ? "shadow-[inset_3px_0_0_#1e8e3e]"
+                : actualizada
+                  ? "shadow-[inset_3px_0_0_#0b5fc4]"
                   : "";
+              const porcentaje = Math.max(0, Math.min(100, parseFloat(f.relevancia) || 0));
               return (
-                <tr key={`${inicio + i}-${f.enlace}`} className={`border-t border-slate-200 align-top ${color}`}>
-                  <td className="px-3 py-2 tabular-nums">{inicio + i + 1}</td>
-                  <td className="whitespace-nowrap px-3 py-2 tabular-nums">{f.relevancia}</td>
-                  <td className="min-w-72 px-3 py-2">{f.titulo}</td>
-                  <td className="min-w-48 px-3 py-2">{f.organo}</td>
-                  <td className="px-3 py-2">{f.tipoContrato}</td>
-                  <td className="min-w-40 px-3 py-2">{f.lugar}</td>
-                  <td className="whitespace-nowrap px-3 py-2">{f.cierre}</td>
-                  <td className="whitespace-nowrap px-3 py-2">{f.fechaPub}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{f.importe}</td>
-                  <td className="whitespace-nowrap px-3 py-2">
+                <tr key={`${inicio + i}-${f.enlace}`} className={`border-t border-line align-top ${fondo} ${texto}`}>
+                  <td className={`px-3 py-2.5 tabular-nums ${marca}`}>{inicio + i + 1}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5">
+                    <span className="tabular-nums">{f.relevancia}</span>
+                    <span aria-hidden className="mt-1 block h-1 w-16 overflow-hidden rounded-full bg-ink/10">
+                      <span className="block h-full rounded-full bg-brand" style={{ width: `${porcentaje}%` }} />
+                    </span>
+                  </td>
+                  <td className="min-w-72 max-w-md px-3 py-2.5 leading-snug">{f.titulo}</td>
+                  <td className="min-w-48 px-3 py-2.5 leading-snug">{f.organo}</td>
+                  <td className="px-3 py-2.5">{f.tipoContrato}</td>
+                  <td className="min-w-40 px-3 py-2.5 leading-snug">{f.lugar}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 tabular-nums">{f.cierre}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 tabular-nums">{f.fechaPub}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{f.importe}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5">
                     {f.enlace ? (
                       <a
                         href={f.enlace}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-brand underline underline-offset-2 hover:text-brand-dark"
+                        className="inline-flex items-center gap-1.5 font-medium text-brand underline underline-offset-2 hover:text-brand-dark"
                       >
-                        Ver licitación 🔗
+                        Ver licitación
+                        <IconoEnlace />
+                        <span className="sr-only">(se abre en una pestaña nueva)</span>
                       </a>
                     ) : (
                       "—"
@@ -70,23 +98,23 @@ export function ResultsTable({ filas }: { filas: FilaResultado[] }) {
       </div>
 
       {totalPaginas > 1 && (
-        <nav aria-label="Paginación de resultados" className="mt-3 flex items-center justify-between gap-3 text-sm">
+        <nav aria-label="Paginación de resultados" className="mt-4 flex items-center justify-between gap-3 text-sm">
           <button
             type="button"
             onClick={() => setPagina((p) => Math.max(1, p - 1))}
             disabled={pagina === 1}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 disabled:opacity-40"
+            className="rounded-md border border-line bg-white px-4 py-2 font-medium shadow-sm hover:bg-paper disabled:cursor-not-allowed disabled:opacity-40"
           >
             Anterior
           </button>
-          <span>
+          <span className="tabular-nums text-muted">
             Página {pagina} de {totalPaginas}
           </span>
           <button
             type="button"
             onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
             disabled={pagina === totalPaginas}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 disabled:opacity-40"
+            className="rounded-md border border-line bg-white px-4 py-2 font-medium shadow-sm hover:bg-paper disabled:cursor-not-allowed disabled:opacity-40"
           >
             Siguiente
           </button>
