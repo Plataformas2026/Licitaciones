@@ -1,4 +1,6 @@
 import { Buscador } from "@/components/Buscador.tsx";
+import { Cabecera } from "@/components/Cabecera.tsx";
+import { getUsuario } from "@/lib/supabase/server.ts";
 
 // Ayer en hora de Canarias (valor por defecto de "Fecha fin de presentación").
 function ayer(): string {
@@ -10,13 +12,18 @@ function ayer(): string {
 // Se calcula en cada petición; si no, Next lo fijaría en el momento del build.
 export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function Home() {
+  const usuario = await getUsuario();
+
   return (
-    <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
-      <h1 className="mb-6 text-3xl font-bold tracking-tight text-slate-900">
-        🔍 Buscador inteligente de Licitaciones
-      </h1>
-      <Buscador cierreInicial={ayer()} />
-    </main>
+    <>
+      <Cabecera email={usuario?.email ?? ""} />
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
+        <h1 className="mb-6 font-serif text-3xl font-semibold tracking-tight text-ink">
+          Buscador inteligente de Licitaciones
+        </h1>
+        <Buscador cierreInicial={ayer()} />
+      </main>
+    </>
   );
 }

@@ -1,9 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #0066cc;
-  --color-brand-dark: #0052a3;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-ink: #0f1b2d;
+  --color-ink-soft: #1b2b44;
+  --color-paper: #f2f4f7;
+  --color-line: #d8dee6;
+  --color-muted: #566376;
+  --color-brand: #0b5fc4;
+  --color-brand-dark: #08479a;
+  --color-brand-soft: #e7effb;
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: "IBM Plex Serif", ui-serif, Georgia, "Times New Roman", serif;
 }
 
 :root {
@@ -11,13 +19,33 @@
 }
 
 body {
-  background: #ffffff;
-  color: #1e293b;
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Cuando el campo tiene su propio anillo de foco, no duplicar el contorno. */
+input:focus-visible,
+button:focus-visible {
+  outline-offset: 1px;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
