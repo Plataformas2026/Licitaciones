@@ -197,7 +197,7 @@ export function Buscador({ cierreInicial }: Props) {
           </div>
         </div>
         <p className="mt-3 max-w-4xl text-xs leading-relaxed text-muted">
-          Varias palabras seguidas equivalen a OR (basta con que aparezca una). Usa AND para exigir varios términos a
+          * Palabras clave: Varias palabras seguidas equivalen a OR (basta con que aparezca una). Usa AND para exigir varios términos a
           la vez (ej. software AND web) y OR para exigir cualquiera (ej. suministro OR servicio). Las comillas exigen
           una frase exacta (ej. &quot;mantenimiento de equipos&quot;) y el guion excluye un término o frase (ej.
           -provisional o -&quot;obras menores&quot;).
