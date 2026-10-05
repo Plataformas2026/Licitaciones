@@ -4,15 +4,24 @@ Migración de `app.py` (Streamlit) a Next.js App Router + TypeScript + Tailwind 
 Lee tus tablas actuales de Supabase; **no modifica la base de datos**. La ingesta
 (`sincronizar_*.py`, `auditar_*.py` y los workflows de GitHub Actions) sigue donde está.
 
+## Acceso con login
+
+Toda la web y `/api/search` exigen sesión (Supabase Auth, correo + contraseña). Sin sesión se redirige a `/login`
+y la API responde 401. No hay registro público: los usuarios se crean en Supabase.
+
 ## Estructura
 
 ```
 src/
 ├── app/
-│   ├── api/search/route.ts   # POST /api/search: ejecuta la búsqueda en el servidor
+│   ├── api/search/route.ts   # POST /api/search: ejecuta la búsqueda (exige sesión)
+│   ├── login/page.tsx        # pantalla de inicio de sesión
 │   ├── layout.tsx · page.tsx · globals.css · icon.svg
+├── proxy.ts                  # protege rutas y refresca la sesión (en Next 15 se llamaba middleware.ts)
 ├── components/
 │   ├── Buscador.tsx          # formulario, estado y mensajes (cliente)
+│   ├── Cabecera.tsx · BotonSalir.tsx · FormularioLogin.tsx · IlustracionResultados.tsx
+│   ├── icons.tsx · ui.tsx    # iconos y estilos compartidos
 │   ├── MultiSelect.tsx       # desplegable con casillas (st.multiselect)
 │   └── ResultsTable.tsx      # tabla con filas verdes/azules y paginación
 └── lib/
@@ -21,7 +30,8 @@ src/
     ├── filters.ts            # aplicar_filtros_comunes
     ├── embeddings.ts         # modelo multilingual-e5-small en el servidor
     ├── search.ts             # RPC buscar_licitaciones / lectura paginada de `licitaciones`
-    └── supabase.ts           # cliente Supabase (solo servidor)
+    ├── supabase.ts           # cliente Supabase de DATOS (solo servidor)
+    └── supabase/             # clientes de AUTENTICACIÓN (navegador, servidor y proxy)
 scripts/
 ├── test-parity.ts            # compara con los resultados del código Python original
 └── fixtures/parity.json
@@ -33,9 +43,11 @@ scripts/
 |---|---|---|
 | `SUPABASE_URL` | `.env.local` y Vercel | Los mismos de tus Secrets de Streamlit |
 | `SUPABASE_KEY` | `.env.local` y Vercel | Los mismos de tus Secrets de Streamlit |
+| `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` y Vercel | La misma URL del proyecto |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `.env.local` y Vercel | Clave pública (anon o publishable) |
 | `ONNXRUNTIME_NODE_INSTALL=skip` | Solo Vercel | Evita descargar binarios CUDA que desbordan el límite de 250 MB de la función |
 
-Ninguna lleva el prefijo `NEXT_PUBLIC_`: las claves solo existen en el servidor.
+`SUPABASE_URL` y `SUPABASE_KEY` solo existen en el servidor. Las dos `NEXT_PUBLIC_*` van al navegador y solo sirven para el login; nunca pongas ahí la clave `service_role`.
 
 ## En local
 
