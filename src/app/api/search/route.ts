@@ -1,4 +1,5 @@
 import { ejecutarBusqueda } from "@/lib/search.ts";
+import { getUsuario } from "@/lib/supabase/server.ts";
 import type { Filtros, Modo } from "@/lib/types.ts";
 
 export const runtime = "nodejs";
@@ -18,6 +19,11 @@ const fecha = (v: unknown, defecto: string) =>
   typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : defecto;
 
 export async function POST(req: Request) {
+  // El proxy ya filtra, pero la API comprueba la sesión por su cuenta (defensa en profundidad).
+  if (!(await getUsuario())) {
+    return Response.json({ error: "Sesión caducada. Vuelve a iniciar sesión." }, { status: 401 });
+  }
+
   try {
     const cuerpo = (await req.json()) as Record<string, unknown>;
 
