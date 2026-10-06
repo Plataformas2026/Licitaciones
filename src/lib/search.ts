@@ -33,7 +33,7 @@ async function buscarPorVectores(consulta: string): Promise<Licitacion[]> {
     match_threshold: 0.2,
     match_count: 999999,
   });
-  if (error) throw new Error(`Error en la búsqueda vectorial: ${error.message}`);
+  if (error) throw new Error(`Por favor, vuelva a realizar la búsqueda. El proceso anterior ha tardado más de lo previsto.`);
   return (data ?? []) as Licitacion[];
 }
 
