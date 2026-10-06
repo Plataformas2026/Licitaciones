@@ -91,7 +91,7 @@ export function Buscador({ cierreInicial }: Props) {
           datos?.error ??
             (res.status === 504
               ? "La búsqueda ha tardado demasiado. Si es la primera búsqueda con texto, vuelve a intentarlo: el modelo ya habrá empezado a cargarse."
-              : `Error ${res.status} al buscar.`),
+              : `La búsqueda ha tardado demasiado. Si es la primera búsqueda con texto, vuelve a intentarlo: el modelo ya habrá empezado a cargarse.`),
         );
       }
 
