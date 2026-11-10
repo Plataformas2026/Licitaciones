@@ -34,6 +34,23 @@ const CAMPOS_VACIOS = {
   limite: 10,
 };
 
+/**
+ * fetch que, si la plataforma falla con un 5xx SIN JSON (arranque en frío o timeout de la función, por ejemplo mientras
+ * se carga el modelo de IA), repite UNA sola vez la misma petición en lugar de pedir al usuario que vuelva a pulsar.
+ * Un error con JSON lo genera nuestra propia API y no se repite; si el segundo intento también falla, se devuelve tal cual.
+ */
+async function fetchConReintento(input: string, init: RequestInit): Promise<Response> {
+  const res = await fetch(input, init);
+  if (res.status < 500) return res;
+  const texto = await res.clone().text();
+  try {
+    JSON.parse(texto);
+    return res;
+  } catch {
+    return fetch(input, init);
+  }
+}
+
 export function Buscador({ cierreInicial }: Props) {
   const [c, setC] = useState(CAMPOS_VACIOS);
   const [fechaCierre, setFechaCierre] = useState(cierreInicial);
@@ -63,7 +80,7 @@ export function Buscador({ cierreInicial }: Props) {
     setAviso(null);
 
     try {
-      const res = await fetch("/api/search", {
+      const res = await fetchConReintento("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,

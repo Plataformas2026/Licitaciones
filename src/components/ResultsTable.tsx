@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FilaResultado } from "@/lib/types.ts";
-import { IconoEnlace } from "./icons.tsx";
+import { IconoChevron, IconoEnlace } from "./icons.tsx";
 
 const POR_PAGINA = 50;
 
@@ -19,15 +19,88 @@ const COLUMNAS = [
   "Enlace oficial",
 ];
 
+type TipoOrden = "numero" | "importe" | "fecha" | "texto";
+
+/** Columnas ordenables (índice en COLUMNAS -> campo de la fila y tipo de dato). "#" y "Enlace oficial" no se ordenan. */
+const ORDENABLES: Record<number, { campo: keyof FilaResultado; tipo: TipoOrden }> = {
+  1: { campo: "relevancia", tipo: "numero" },
+  2: { campo: "titulo", tipo: "texto" },
+  3: { campo: "organo", tipo: "texto" },
+  4: { campo: "tipoContrato", tipo: "texto" },
+  5: { campo: "lugar", tipo: "texto" },
+  6: { campo: "cierre", tipo: "fecha" },
+  7: { campo: "fechaPub", tipo: "fecha" },
+  8: { campo: "importe", tipo: "importe" },
+};
+
+const comparadorTexto = new Intl.Collator("es", { sensitivity: "base", numeric: true });
+const SIN_DATO = /^(no especificad[oa])?$/i;
+
+/** Valor comparable de una celda ya formateada; null = vacío o no disponible (va siempre al final). */
+function valorOrden(fila: FilaResultado, campo: keyof FilaResultado, tipo: TipoOrden): number | string | null {
+  const bruto = String(fila[campo] ?? "").trim();
+  if (SIN_DATO.test(bruto)) return null;
+
+  if (tipo === "numero") {
+    // "87.50 %" -> 87.5
+    const n = parseFloat(bruto);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (tipo === "importe") {
+    // Formato español "1.250,50 €": el punto separa millares y la coma los decimales.
+    const limpio = bruto.replace(/[^\d,.\-]/g, "");
+    if (!/\d/.test(limpio)) return null;
+    const n = Number(limpio.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+  if (tipo === "fecha") {
+    // "2026-12-01", "2026-12-01T10:00:00" o "2026-12-01 10:00"
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(bruto);
+    if (!m) return null;
+    const t = Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] ?? 0), +(m[5] ?? 0), +(m[6] ?? 0));
+    return Number.isFinite(t) ? t : null;
+  }
+  return bruto;
+}
+
 export function ResultsTable({ filas }: { filas: FilaResultado[] }) {
   const [pagina, setPagina] = useState(1);
+  // Orden manual elegido con las cabeceras; null = orden en que llegaron los resultados (relevancia, de mayor a menor).
+  const [orden, setOrden] = useState<{ col: number; dir: "asc" | "desc" } | null>(null);
   const totalPaginas = Math.max(1, Math.ceil(filas.length / POR_PAGINA));
 
-  // Nueva búsqueda -> volver a la primera página.
-  useEffect(() => setPagina(1), [filas]);
+  // Nueva búsqueda -> volver a la primera página y al orden inicial.
+  useEffect(() => {
+    setPagina(1);
+    setOrden(null);
+  }, [filas]);
+
+  // Primer clic: ascendente; clics siguientes sobre la misma cabecera: alternan.
+  const ordenarPor = (col: number) => {
+    setOrden((o) => (o && o.col === col ? { col, dir: o.dir === "asc" ? "desc" : "asc" } : { col, dir: "asc" }));
+    setPagina(1);
+  };
+
+  // Ordena solo las filas ya recibidas: no hay nuevas llamadas al servidor ni al modelo.
+  const filasOrdenadas = useMemo(() => {
+    if (!orden) return filas;
+    const { campo, tipo } = ORDENABLES[orden.col];
+    const sentido = orden.dir === "asc" ? 1 : -1;
+    return filas
+      .map((fila, idx) => ({ fila, idx, v: valorOrden(fila, campo, tipo) }))
+      .sort((a, b) => {
+        if (a.v === null || b.v === null) {
+          if (a.v === b.v) return a.idx - b.idx;
+          return a.v === null ? 1 : -1; // vacíos siempre al final, en ambos sentidos
+        }
+        const c = typeof a.v === "string" ? comparadorTexto.compare(a.v, b.v as string) : a.v - (b.v as number);
+        return c * sentido || a.idx - b.idx; // empates: se conserva el orden de llegada
+      })
+      .map((x) => x.fila);
+  }, [filas, orden]);
 
   const inicio = (pagina - 1) * POR_PAGINA;
-  const visibles = filas.slice(inicio, inicio + POR_PAGINA);
+  const visibles = filasOrdenadas.slice(inicio, inicio + POR_PAGINA);
 
   return (
     <div>
@@ -35,15 +108,31 @@ export function ResultsTable({ filas }: { filas: FilaResultado[] }) {
         <table className="w-full min-w-[1150px] border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-ink text-left text-white">
             <tr>
-              {COLUMNAS.map((c, i) => (
-                <th
-                  key={c}
-                  scope="col"
-                  className={`whitespace-nowrap px-3 py-2.5 text-xs font-semibold ${i === 8 ? "text-right" : ""}`}
-                >
-                  {c}
-                </th>
-              ))}
+              {COLUMNAS.map((c, i) => {
+                const dirActiva = orden && orden.col === i ? orden.dir : null;
+                return (
+                  <th
+                    key={c}
+                    scope="col"
+                    aria-sort={dirActiva === "asc" ? "ascending" : dirActiva === "desc" ? "descending" : undefined}
+                    className={`whitespace-nowrap px-3 py-2.5 text-xs font-semibold ${i === 8 ? "text-right" : ""}`}
+                  >
+                    {ORDENABLES[i] ? (
+                      <button
+                        type="button"
+                        onClick={() => ordenarPor(i)}
+                        title={`Ordenar por ${c}`}
+                        className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap font-semibold hover:underline focus-visible:outline-white"
+                      >
+                        {c}
+                        {dirActiva && <IconoChevron className={dirActiva === "asc" ? "rotate-180" : ""} />}
+                      </button>
+                    ) : (
+                      c
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
