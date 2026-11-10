@@ -25,16 +25,60 @@ function diaSiguiente(iso: string): string {
 
 const esIso = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
+/**
+ * Similitud mínima para mostrar un resultado de la búsqueda por texto («¿Qué tipo de licitación buscas?»).
+ * Misma escala 0-1 que devuelve el RPC (la relevancia en % es similarity * 100), es decir, 70 %.
+ */
+const UMBRAL_SIMILITUD = 0.7;
+
+/**
+ * La base de datos cancela las consultas que superan su `statement_timeout` (3 s con la clave anon, 8 s con el resto).
+ * La primera búsqueda tras un rato sin uso las pilla con la caché fría y puede cancelarse; la repetición ya va en caliente.
+ * En lugar de pedir al usuario que vuelva a pulsar, el RPC se repite aquí, solo ante errores transitorios y con tope.
+ */
+const INTENTOS_RPC = 3;
+const ESPERA_RPC_MS = 1500;
+const PRESUPUESTO_MS = 40_000; // no empezar otro intento si ya se han gastado 40 s (maxDuration de la ruta = 60 s)
+
+const esErrorTransitorio = (e: { code?: string; message?: string }) =>
+  e.code === "57014" ||
+  /statement timeout|canceling statement|timeout|timed out|fetch failed|network|econnreset|socket hang up|\b50[234]\b/i.test(
+    e.message ?? "",
+  );
+
 /** Búsqueda semántica: mismo RPC `buscar_licitaciones` que usaba Streamlit. */
 async function buscarPorVectores(consulta: string): Promise<Licitacion[]> {
-  const vector = await embeberConsulta(consulta);
-  const { data, error } = await getSupabase().rpc("buscar_licitaciones", {
-    query_embedding: vector,
-    match_threshold: 0.2,
-    match_count: 999999,
-  });
-  if (error) throw new Error(`Por favor, vuelva a realizar la búsqueda. El proceso anterior ha tardado más de lo previsto.`);
-  return (data ?? []) as Licitacion[];
+  const inicio = Date.now();
+  const vector = await embeberConsulta(consulta); // el modelo se espera una sola vez; los reintentos solo repiten el RPC
+
+  for (let intento = 1; ; intento++) {
+    const { data, error } = await getSupabase().rpc("buscar_licitaciones", {
+      query_embedding: vector,
+      match_threshold: 0.2,
+      match_count: 999999,
+    });
+
+    if (!error) {
+      // Sin similitud informada no se puede descartar: se trata igual que en aFila() (100 %).
+      return ((data ?? []) as Licitacion[]).filter(
+        (x) => x.similarity == null || Number(x.similarity) >= UMBRAL_SIMILITUD,
+      );
+    }
+
+    console.warn(
+      `[buscar_licitaciones] intento ${intento}/${INTENTOS_RPC} fallido (${error.code || "sin código"}): ${error.message}`,
+    );
+
+    // Un error que no es transitorio (función inexistente, permisos...) se muestra tal cual: no se repite ni se oculta.
+    if (!esErrorTransitorio(error)) throw new Error(`Error en la búsqueda vectorial: ${error.message}`);
+
+    if (intento >= INTENTOS_RPC || Date.now() - inicio > PRESUPUESTO_MS) {
+      throw new Error(
+        `Por favor, vuelva a realizar la búsqueda. El proceso anterior ha tardado más de lo previsto. (${error.message})`,
+      );
+    }
+    await new Promise((resolver) => setTimeout(resolver, ESPERA_RPC_MS * intento));
+  }
 }
 
 /** Lectura paginada de la tabla (sin consulta de texto). */
